@@ -1,0 +1,16 @@
+export const FONT = {
+    sans_300: "Raleway-Thin",
+    sans_400: "Raleway-Regular",
+    sans_500: "Raleway-Medium",
+    sans_600: "Raleway-SemiBold",
+    sans_700: "Raleway-Bold",
+    sans_800: "Raleway-ExtraBold",
+    sans_900: "Raleway-Black",
+    serif_300: "Bitter-Light",
+    serif_400: "Bitter-Regular",
+    serif_500: "Bitter-Medium",
+    serif_600: "Bitter-SemiBold",
+    serif_700: "Bitter-Bold",
+    serif_800: "Bitter-ExtraBold",
+    serif_900: "Bitter-Black",
+}
