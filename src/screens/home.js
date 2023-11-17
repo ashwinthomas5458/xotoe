@@ -3,8 +3,7 @@ import { Animated, Image, LayoutAnimation, Platform, ScrollView, StyleSheet, UIM
 
 import { base } from "../styles";
 import { colors } from "../config";
-import { PrimaryButton } from "../components/cta";
-import SecondaryButton from "../components/cta/secondaryButton";
+import { PrimaryButton, SecondaryButton } from "../components/cta";
 import { TextTag } from "../components/textTags";
 
 const Xotoe = require("../assets/images/xotoe.gif");

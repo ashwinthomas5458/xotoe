@@ -9,12 +9,21 @@ import { colors } from "../config";
 
 import AppRoutes from "./appRoutes";
 import OnboardingRoute from "./onboardingRoute";
+import useAppFlags, { FlagDataProvider } from "../context/useFlagsContext";
+import { useStorage } from "../services/hooks";
 
-const Routes = () => {
-    const [showSplashScreen ,setShowSplashScreen] = useState(true);
+const RoutesContainer = () => {
+    const [showSplashScreen, setShowSplashScreen] = useState(true);
     const splashAnime = useRef(new Animated.Value(1)).current;
+    const { showOnboardingScreen, updateOnboardingFlag } = useAppFlags();
+    const { checkIfOnboardingShown } = useStorage();
 
-    const handleSplashCallback=()=>{
+    const checkOnboarding = async ()=>{
+        let isComplete = await checkIfOnboardingShown();
+        if(isComplete && isComplete==="COMPLETED") updateOnboardingFlag(false);
+    }
+
+    const handleSplashCallback = () => {
         setShowSplashScreen(false);
     }
 
@@ -29,6 +38,7 @@ const Routes = () => {
     }
 
     useEffect(() => {
+        checkOnboarding();
         handleSplashScreen();
     }, []);
 
@@ -38,15 +48,23 @@ const Routes = () => {
                 <SafeAreaView style={[base.flex_fill]}>
                     <View style={[base.flex_fill, base.position_relative, { backgroundColor: colors.__x_white }]}>
                         {
-                            1 === 1 ?
-                                <AppRoutes />
-                                : <OnboardingRoute />
+                            showOnboardingScreen ?
+                                <OnboardingRoute />
+                                : <AppRoutes />
                         }
-                       {showSplashScreen? <SplashAnime anime={splashAnime}/>:null}
+                        {showSplashScreen ? <SplashAnime anime={splashAnime} /> : null}
                     </View>
                 </SafeAreaView>
             </View>
         </>
+    )
+}
+
+const Routes = () => {
+    return (
+        <FlagDataProvider>
+            <RoutesContainer />
+        </FlagDataProvider>
     )
 }
 

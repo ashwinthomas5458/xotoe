@@ -24,7 +24,7 @@ const SIZE = {
     "height": WINDOW_HEIGHT,
     "pagePadding": PAGE_PADDING,
     "availableWidth": AVAILABLE_SCREEN_WIDTH,
-    "indicator": 4,
+    "indicator": 8,
     "FS_2": normalize(2),
     "FS_3": normalize(3),
     "FS_4": normalize(4),

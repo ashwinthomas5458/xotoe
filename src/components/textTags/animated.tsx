@@ -1,6 +1,7 @@
 import React from "react";
-import { Animated, StyleSheet, TextStyle } from "react-native";
+import { StyleSheet, TextStyle } from "react-native";
 import { size } from "../../styles";
+import Animated from "react-native-reanimated";
 
 type TextType = "displayXxl" | "displayXl" | "displayLg" | "displayM" | "textXl" | "textLg" | "textM" | "textSm" | "textXs" | "tag";
 interface PropsType {
