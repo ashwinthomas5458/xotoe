@@ -41,7 +41,7 @@ const PrimaryButton=({
             friction: 15,
             tension: 140,
             useNativeDriver: true
-        }).start();
+        }).start(onButtonPress);
     }
 
     const displacement = buttonAnime.interpolate({
@@ -57,7 +57,7 @@ const PrimaryButton=({
     }
 
     return(
-        <Pressable style={[base.align_stretch, styles.wrapper]} onPressIn={onPressIn} onPressOut={onPressOut} onPress={onButtonPress}>
+        <Pressable style={[base.align_stretch, styles.wrapper]} onPressIn={onPressIn} onPressOut={onPressOut}>
             <View style={[base.align_stretch, base.position_relative]}>
                 <View style={type==="lg"?[base.py_6, styles.shadow, {backgroundColor: colors.__x_black}, base.px_8]: [base.py_4, styles.shadow, {backgroundColor: colors.__x_black}, base.px_6]}>
                    <TextTag type={type==="lg"? "textM": "textSm"} style={[base.sans_600, base.px_2, {color: colors.__x_black}]}>{text}</TextTag>

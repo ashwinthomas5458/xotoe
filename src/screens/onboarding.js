@@ -1,14 +1,17 @@
-import React, { useCallback, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from "react-native";
+import { Path, Svg } from "react-native-svg";
+
 import { base, size } from "../styles";
 import { colors } from "../config";
-import { Circle, Path, Svg } from "react-native-svg";
-import { AnimatedTextTag, TextTag } from "../components/textTags";
-import Animated, { interpolate, interpolateColor, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
-import { PageIndicatorDot } from "../components/indicators";
-import { RoundedArrowButton } from "../components/cta";
 import useAppFlags from "../context/useFlagsContext";
 import { useStorage } from "../services/hooks";
+
+import { AnimatedTextTag, TextTag } from "../components/textTags";
+import Animated, { Easing, interpolate, interpolateColor, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
+import { PageIndicatorDot } from "../components/indicators";
+import { RoundedArrowButton } from "../components/cta";
+import { OnboardingSplashDummy } from "../components/splashScreen";
 
 const ONBOARDING_DATA = [
     { "title": "Timeless classic", "description": "Rediscover the magic of the classic tic-tac-toe game as you embark on a journey through its timeless charm!", "background": colors.__x_red, "color": colors.__x_white, "icon": colors.__x_blue, "id": 1, "index": 0 },
@@ -17,6 +20,10 @@ const ONBOARDING_DATA = [
 ];
 const ONBOARDING_ICONS = [colors.__x_blue, colors.__x_green, colors.__x_orange];
 const ONBOARDING_INDICATORS = ["1", "2", "3"];
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const AnimatedIcon = ({ color, index, scrollX }) => {
 
@@ -50,34 +57,6 @@ const AnimatedIcon = ({ color, index, scrollX }) => {
     )
 }
 
-const AnimatedBtn = ({ color, index, scrollX }) => {
-    const opacityAnimeStyle = useAnimatedStyle(() => {
-
-        const opacity = interpolate(
-            scrollX.value,
-            [
-                ((index - 1) * size.width),
-                index * size.width,
-                ((index + 1) * size.width)
-            ],
-            [0, 1, 0],
-        );
-
-        return {
-            opacity: opacity
-        };
-    });
-    return (
-        <Animated.View style={[base.position_absolute, styles.iconSvg, opacityAnimeStyle]}>
-            <Svg width="62" height="62" viewBox="0 0 62 62" fill="none">
-                <Circle cx="32" cy="32" r="30" fill={colors.__x_black} />
-                <Circle cx="30" cy="30" r="29" fill={color} stroke={colors.__x_black} strokeWidth="2" />
-                <Path d="M26 38L34 30L26 22" stroke={colors.__x_black} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-        </Animated.View>
-    )
-}
-
 const OnboardingCard = ({ item, index, scrollX }) => {
 
     const headingAnimeStyle = useAnimatedStyle(() => {
@@ -103,7 +82,7 @@ const OnboardingCard = ({ item, index, scrollX }) => {
         );
 
         return {
-            transform: [{translateX}],
+            transform: [{ translateX }],
             opacity: opacity
         };
     });
@@ -131,7 +110,7 @@ const OnboardingCard = ({ item, index, scrollX }) => {
         );
 
         return {
-            transform: [{translateX}],
+            transform: [{ translateX }],
             opacity: opacity
         };
     });
@@ -158,12 +137,16 @@ const OnboardingCard = ({ item, index, scrollX }) => {
 
 const Onboarding = () => {
     const [currentPosition, setCurrentposition] = useState(0);
+    const [showDummySplash, setShowDummySplash] = useState(true);
+    const [triggerDummyView, setTriggerDummyView] = useState(false);
     const onboardingRef = useRef(null);
     const scrollX = useSharedValue(0);
+    const onboardingAnime = useSharedValue(0);
+    const splashOpacityAnime = useSharedValue(1);
     const { updateOnboardingFlag } = useAppFlags();
     const { updateOnboardingStatus } = useStorage();
 
-    const navigateToHome=async()=>{
+    const navigateToHome = async () => {
         await updateOnboardingStatus();
         updateOnboardingFlag(true);
     }
@@ -172,21 +155,39 @@ const Onboarding = () => {
         viewAreaCoveragePercentThreshold: 50,
     };
 
-    const scrollToIndex = (index) => {
-        setCurrentposition(index);
-        onboardingRef.current?.scrollToIndex({index:index});
-    }
-
-    const renderOnboardingCard = useCallback(({ item, index }) => (
-        <OnboardingCard item={item} index={index} scrollX={scrollX} />
-    ), []);
-
     const onViewableItemsChanged = useCallback(({ viewableItems }) => {
         if (viewableItems && viewableItems.length) {
             let current = viewableItems[0].index;
             setCurrentposition(current);
         }
     }, []);
+
+    const handleSplashLayoutShift=(complete)=>{
+        if(complete){
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setTriggerDummyView(true);
+            splashOpacityAnime.value = withTiming(0, {
+                duration: 900,
+                easing: Easing.ease,
+            },(isFinished)=>{if(isFinished)runOnJS(setShowDummySplash)(false)})
+        }
+    }
+
+    const triggerSplashAnime=()=>{
+        onboardingAnime.value = withDelay(1500, withTiming(1, {
+            duration: 500,
+            easing: Easing.ease,
+        }, (isFinished)=>runOnJS(handleSplashLayoutShift)(isFinished)))
+    }
+
+    const scrollToIndex = (index) => {
+        setCurrentposition(index);
+        onboardingRef.current?.scrollToIndex({ index: index });
+    }
+
+    const renderOnboardingCard = useCallback(({ item, index }) => (
+        <OnboardingCard item={item} index={index} scrollX={scrollX} />
+    ), []);
 
     const keyExtractor = useCallback((_, index) => `onboarding-${index}`, []);
 
@@ -222,7 +223,12 @@ const Onboarding = () => {
         },
     });
 
+    useEffect(()=>{
+        triggerSplashAnime();
+    },[]);
+
     return (
+        <>
         <Animated.View style={[base.flex_fill, base.position_relative, wrapAnimeStyle]}>
             <Animated.FlatList
                 style={[base.flex_fill]}
@@ -258,7 +264,7 @@ const Onboarding = () => {
                 </View>
                 <View style={[base.pb_8]}>
                     <View style={[base.pb_10]}>
-                       <RoundedArrowButton scrollX={scrollX} onClick={handleScrollClick}/>
+                        <RoundedArrowButton scrollX={scrollX} onClick={handleScrollClick} />
                     </View>
                     <View style={[base.pt_6, base.flex_row, base.align_center]}>
                         {
@@ -270,6 +276,8 @@ const Onboarding = () => {
                 </View>
             </View>
         </Animated.View>
+        {showDummySplash? <OnboardingSplashDummy anime={onboardingAnime} opacityAnime={splashOpacityAnime} triggerLayoutShift={triggerDummyView}/>: null}
+        </>
     )
 }
 

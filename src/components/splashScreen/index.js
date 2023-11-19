@@ -1,5 +1,6 @@
 import React from "react";
 import { Animated, Image, StyleSheet, View } from "react-native";
+import OnboardingSplashDummy from "./onboardingDummy";
 
 import { base } from "../../styles";
 import { colors } from "../../config";
@@ -31,3 +32,4 @@ const styles = StyleSheet.create({
 })
 
 export default SplashAnime;
+export { OnboardingSplashDummy }
