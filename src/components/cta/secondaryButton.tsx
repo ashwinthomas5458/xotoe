@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { ActivityIndicator, Animated, Pressable, StyleSheet, View } from "react-native";
+import ReactNativeHapticFeedback from "react-native-haptic-feedback";
 
 import { base, size } from "../../styles";
 import { colors } from "../../config";
@@ -7,6 +8,10 @@ import { colors } from "../../config";
 import { TextTag } from "../textTags";
 
 const B_DISPLACEMENT = 6;
+const options = {
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+};
 type SecondaryButtonProps={
     type?: "md"|"lg"|undefined,
     text: string,
@@ -27,6 +32,7 @@ const SecondaryButton=({
     const buttonAnime = useRef(new Animated.Value(0)).current;
 
     const onPressIn=()=>{
+        ReactNativeHapticFeedback.trigger("impactLight", options);
         Animated.spring(buttonAnime,{
             toValue: 1,
             friction: 15,
@@ -36,6 +42,7 @@ const SecondaryButton=({
     }
 
     const onPressOut=()=>{
+        ReactNativeHapticFeedback.trigger("impactLight", options);
         Animated.spring(buttonAnime,{
             toValue: 0,
             friction: 15,

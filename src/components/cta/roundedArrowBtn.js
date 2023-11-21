@@ -1,23 +1,30 @@
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import ReactNativeHapticFeedback from "react-native-haptic-feedback";
 
 import { base, size } from "../../styles";
 import { colors } from "../../config";
 
-import Animated, { interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import Animated, { interpolate, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { Path, Svg } from "react-native-svg";
 
 const B_DISPLACEMENT = 4;
+const options = {
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+};
 
 const RoundedArrowButton=({ onClick, scrollX })=>{
     const buttonAnime = useSharedValue(0);
 
     const onPressIn=()=>{
-        buttonAnime.value = withSpring(1, {damping:  0.4866, stiffness: 1.4});
+        ReactNativeHapticFeedback.trigger("impactLight", options);
+        buttonAnime.value = withSpring(1);
     }
 
     const onPressOut=()=>{
-        buttonAnime.value = withSpring(0, {damping:  0.4866, stiffness: 1.4});
+        ReactNativeHapticFeedback.trigger("impactLight", options);
+        buttonAnime.value = withSpring(0);
     }
 
     const displacementAnimeStyle = useAnimatedStyle(() => {
