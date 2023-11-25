@@ -4,8 +4,6 @@ import { base, size } from "../../styles";
 import { colors } from "../../config";
 import { TextTag } from "../textTags";
 import { PrimaryButton } from "../cta";
-import SIZE from "../../styles/size";
-import { Path, Svg } from "react-native-svg";
 
 const MODAL_WIDTH = 360;
 const MAX_WIDTH = size.width - 48;
@@ -35,7 +33,8 @@ const ScoreModal = ({
                             {
                                 gameStatus && playerInfo ?
                                     <>
-                                        <TextTag type="textM" style={[base.sans_800, base.pb_3, { color: colors.__x_black }]}>{gameStatus.type === "TIE" ? "The game is tied." : gameStatus.type === "WIN" ? `The game goes to ${gameStatus.player}.` : ''}</TextTag>
+                                        <TextTag type="textM" style={[base.sans_800, base.pb_2, { color: colors.__x_black }]}>{gameStatus.type === "TIE" ? "The game is tied." : gameStatus.type === "WIN" ? `The game goes to ${gameStatus.player}.` : ''}</TextTag>
+                                        <TextTag type="textXs" style={[base.sans_400, base.pb_3, { color: colors.__x_black }]}>Next round {playerInfo["1"].playing==="X"? `should be started by ${playerInfo["1"].name}`: `${playerInfo["2"].name==="Xotoe"? 'will be started by': 'should be started by'} ${playerInfo["2"].name}`} playing X.</TextTag>
                                         <View style={[base.flex_row, base.py_6, base.align_stretch]}>
                                             <View style={[base.flex_fill, base.px_3, base.align_end]}>
                                                 <View style={[base.align_center]}>

@@ -15,12 +15,18 @@ import { useStorage } from "../services/hooks";
 const RoutesContainer = () => {
     const [showSplashScreen, setShowSplashScreen] = useState(true);
     const splashAnime = useRef(new Animated.Value(1)).current;
-    const { showOnboardingScreen, updateOnboardingFlag } = useAppFlags();
+    const { showOnboardingScreen, updateOnboardingFlag, updateWindowSizes } = useAppFlags();
     const { checkIfOnboardingShown } = useStorage();
 
     const checkOnboarding = async ()=>{
         let isComplete = await checkIfOnboardingShown();
         if(isComplete && isComplete==="COMPLETED") updateOnboardingFlag(false);
+    }
+
+    const onLayout=(e)=>{
+        let { width, height } = e?.nativeEvent?.layout;
+        console.log("Dimentions loaded:")
+        if (width && height) updateWindowSizes({width, height});
     }
 
     const handleSplashCallback = () => {
@@ -44,7 +50,7 @@ const RoutesContainer = () => {
 
     return (
         <>
-            <View style={[base.flex_fill]}>
+            <View style={[base.flex_fill]} onLayout={onLayout}>
                 <SafeAreaView style={[base.flex_fill]}>
                     <View style={[base.flex_fill, base.position_relative, { backgroundColor: colors.__x_white }]}>
                         {

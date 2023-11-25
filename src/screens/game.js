@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Path, Svg } from "react-native-svg";
+import { useVector } from "react-native-redash";
+import Animated, { runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 
 import { base, size } from "../styles";
 import { colors } from "../config";
@@ -38,19 +40,21 @@ const OCell = ({ oc }) => {
 }
 
 const XoCell = ({ cell, i, handleCellPress, xc, oc, handleAnimeCallBack }) => {
-    const cellAnime = useRef(new Animated.Value(0)).current;
+    const cellAnime = useSharedValue(0);
 
     const onClick = () => {
         handleCellPress(i);
     }
 
     const handleAnime = () => {
-        Animated.timing(cellAnime, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true
-        }).start(handleAnimeCallBack);
+        cellAnime.value = withTiming(1, {duration: 500}, (isFinished)=>{if(isFinished){runOnJS(handleAnimeCallBack)()}});
     }
+
+    const styleAnime = useAnimatedStyle(()=>{
+        return{
+            opacity: cellAnime.value
+        }
+    })
 
     useEffect(() => {
         if (cell) handleAnime();
@@ -59,7 +63,7 @@ const XoCell = ({ cell, i, handleCellPress, xc, oc, handleAnimeCallBack }) => {
     return (
         <View style={[styles.cell, base.p_2, base.display_flex, base.align_stretch]}>
             <TouchableOpacity style={[base.flex_fill, base.display_flex, base.align_center, base.justify_center]} activeOpacity={0.6} onPress={onClick}>
-                <Animated.View style={[base.position_relative, styles.cellIndicator, { opacity: cellAnime }]}>
+                <Animated.View style={[base.position_relative, styles.cellIndicator, styleAnime]}>
                     {
                         cell === "X" ? <XCELL xc={xc} />
                             : cell === "O" ? <OCell oc={oc} />
@@ -88,7 +92,12 @@ const Game = ({ route, navigation }) => {
     const [triggerSuccessModal, setTriggerSuccessModal] = useState(false);
     const [triggerTieModal, setTriggerTieModal] = useState(false);
     const [triggerDefeatModal, setTriggerDefeatModal] = useState(false);
+    const [winnerStatus, setWinnerStatus] = useState(null);
     const [winner, setWinner] = useState("");
+    const tileStart = useVector(0, 0);
+    const tileEnd = useVector(0, 0);
+
+    const AnimatedPath = Animated.createAnimatedComponent(Path)
 
     const winningCombinations = [
         [0, 1, 2],
@@ -101,14 +110,42 @@ const Game = ({ route, navigation }) => {
         [2, 4, 6]
     ];
 
+    const gameTilePositions=[
+        {start:{x:0,y:(CELL_SIZE/2)}, end:{x:size.availableWidth,y:(CELL_SIZE/2)}},
+        {start:{x:0,y:((3*CELL_SIZE)/2)}, end:{x:size.availableWidth,y:((3*CELL_SIZE)/2)}},
+        {start:{x:0,y:((5*CELL_SIZE)/2)}, end:{x:size.availableWidth,y:((5*CELL_SIZE)/2)}},
+        {start:{x:(CELL_SIZE/2),y:0}, end:{x:(CELL_SIZE/2),y:size.availableWidth}},
+        {start:{x:((3*CELL_SIZE)/2),y:0}, end:{x:((3*CELL_SIZE)/2),y:size.availableWidth}},
+        {start:{x:((5*CELL_SIZE)/2),y:0}, end:{x:((5*CELL_SIZE)/2),y:size.availableWidth}},
+        {start:{x:0,y:0}, end:{x:size.availableWidth,y:size.availableWidth}},
+        {start:{x:0,y:size.availableWidth}, end:{x:size.availableWidth,y:0}}
+    ]
+
+    const handleWinnerData=(gameData)=>{
+        let winner = {...gameData.data};
+        setWinnerStatus(null);
+        hanleGameComplete(winner);
+    }
+
+    const handleGameWin=()=>{
+        let gameData = {...winnerStatus};
+        const currentCombo = gameTilePositions[gameData.combo];
+        tileStart.x.value = currentCombo.start.x;
+        tileStart.y.value = currentCombo.start.y
+        tileEnd.x.value = currentCombo.start.x;
+        tileEnd.y.value = currentCombo.start.y;
+        tileEnd.x.value = withDelay(400, withTiming(currentCombo.end.x, {duration: 600}));
+        tileEnd.y.value = withDelay(400, withTiming(currentCombo.end.y, {duration: 600}, (isFinished)=>{if(isFinished){runOnJS(handleWinnerData)(gameData)}}))
+    }
+
     const checkForWin = (board) => {
         for (let i = 0; i < winningCombinations.length; i++) {
             const [a, b, c] = winningCombinations[i];
             if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                return board[a];
+                return { winner: board[a], combo: i };
             }
         }
-        return null;
+        return {winner: null, combo: null};
     };
 
     const isBoardFull = (board) => {
@@ -119,8 +156,8 @@ const Game = ({ route, navigation }) => {
     };
 
     const minimax = (board, depth, isMaximizing) => {
-        let result = checkForWin(board);
-        if (result !== null) return result === playersInfo["2"].playing ? 10 - depth : depth - 10;
+        const  { winner } = checkForWin(board);
+        if (winner !== null) return winner === playersInfo["2"].playing ? 10 - depth : depth - 10;
         if (isBoardFull(board)) return 0;
 
         if (isMaximizing) {
@@ -179,8 +216,8 @@ const Game = ({ route, navigation }) => {
         let xotoe = { ...playersInfo[nextPlayer] };
         let bestMove = getBestMove(newBoard);
         newBoard[bestMove] = xotoe.playing;
-        let winner = checkForWin(newBoard);
-        if (winner) hanleGameComplete({type:"WIN", index: nextPlayer, player: "Xotoe", score: xotoe.score});
+        const { winner, combo } = checkForWin(newBoard);
+        if (winner) setWinnerStatus({data: {type:"WIN", index: nextPlayer, player: "Xotoe", score: xotoe.score}, combo});
         else if (isBoardFull(newBoard)) hanleGameComplete({type:"TIE"});
         else {
             nextPlayer = xotoe.nextPlayerIndex;
@@ -199,7 +236,7 @@ const Game = ({ route, navigation }) => {
             let currentPlayerInfo = { ...playersInfo[currentPlayerIndex] };
             newBoard[index] = currentPlayerInfo.playing;
             setBoard(newBoard);
-            let winner = checkForWin(newBoard);
+            const { winner, combo} = checkForWin(newBoard);
             let isTie;
             if(!winner) isTie= isBoardFull(newBoard);
             if(!winner && !isTie){
@@ -208,7 +245,7 @@ const Game = ({ route, navigation }) => {
                 if (playerMode === "SINGLE") setTriggerXotoe({newBoard, nextPlayer});
                 else setPlayLoading(false);
             }
-            else if (winner) hanleGameComplete({type:"WIN",index:currentPlayerIndex, player: currentPlayerInfo.name, score: currentPlayerInfo.score});
+            else if (winner)  setWinnerStatus({data: {type:"WIN",index:currentPlayerIndex, player: currentPlayerInfo.name, score: currentPlayerInfo.score}, combo});
             else if (isTie) hanleGameComplete({type:"TIE"});
         }
     };
@@ -288,6 +325,10 @@ const Game = ({ route, navigation }) => {
         setCurrentPlayerIndex(currentIndex);
         setPlayersInfo({...players});
         setGameNumber(nextGame);
+        tileStart.x.value = 0;
+        tileStart.y.value = 0;
+        tileEnd.x.value = 0;
+        tileEnd.y.value = 0;
     }
 
     const checkFinalScore=(info)=>{
@@ -318,6 +359,16 @@ const Game = ({ route, navigation }) => {
         else checkFinalScore(info);
     }
 
+    const pathAnime = useAnimatedProps(()=>{
+
+        return{
+            d: [
+                `M ${tileStart.x.value} ${tileStart.y.value}`,
+                `L ${tileEnd.x.value} ${tileEnd.y.value}`
+            ].join("")
+        }
+    })
+
     const rebootGame=()=>{
         let players = {...playersInfo};
         players["1"].playing="X";
@@ -341,6 +392,10 @@ const Game = ({ route, navigation }) => {
         setTriggerDefeatModal(false);
         setWinner("")
     }
+
+    useEffect(()=>{
+        if(winnerStatus) handleGameWin();
+    },[winnerStatus]);
 
     useEffect(()=>{
         console.log("callback: ", triggerXotoe, isAnimationComplete);
@@ -384,7 +439,7 @@ const Game = ({ route, navigation }) => {
                         }
                     </View>
                     <View style={[base.position_relative, base.flex_row, base.flex_wrap]}>
-                        <Image source={GridIllustration} style={[styles.gridImage, base.w_100, base.h_100, base.position_absolute]} />
+                        <Image source={GridIllustration} style={[styles.gridImage, base.position_absolute, styles.gameSize]} />
                         {
                             board && board.map((cell, i) => {
                                 return (
@@ -392,6 +447,11 @@ const Game = ({ route, navigation }) => {
                                 )
                             })
                         }
+                        <View style={[base.position_absolute, styles.gameStatusWrap, styles.gameSize]} pointerEvents="none">
+                            <Svg width={size.availableWidth} height={size.availableWidth} viewBox={`0 0 ${size.availableWidth} ${size.availableWidth}`}>
+                                <AnimatedPath animatedProps={pathAnime} stroke={colors.__x_red} strokeWidth={6}/>
+                            </Svg>
+                        </View>
                     </View>
                     <View style={[base.pb_4, base.pt_6, base.align_center]}>
                         <PrimaryButton text="Abort" onClick={closePlayerModal} />
@@ -412,6 +472,10 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0
     },
+    gameSize: {
+        width: size.availableWidth,
+        height: size.availableWidth
+    },
     cell: {
         width: CELL_SIZE,
         height: CELL_SIZE,
@@ -421,6 +485,10 @@ const styles = StyleSheet.create({
         height: 56
     },
     cellIcon: {
+        top: 0,
+        left: 0
+    },
+    gameStatusWrap: {
         top: 0,
         left: 0
     }

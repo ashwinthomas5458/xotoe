@@ -69,7 +69,7 @@ const PlayerInputModal = ({
     }
 
     const handleSingleUserInfo=()=>{
-        if(playerName?.length<9){
+        if(playerName?.length<9 && playerName!="Xotoe"){
             let info = {...playerInfo};
             info["1"].name = playerName;
             info["1"].icon = selectedIcon;
@@ -77,11 +77,12 @@ const PlayerInputModal = ({
             info["2"].icon = x;
             updatePlayerInfo(info);
         }
+        else if(playerName==="Xotoe") setError("Oops, that nickname is already taken. Try another one.");
         else setError("Its a nickname bro, keep it below 8 characters");
     }
 
     const handlePlayerOneInfo=()=>{
-        if(playerName?.length<9){
+        if(playerName?.length<9 && playerName!="Xotoe"){
             let info = {...playerInfo};
             let x_avatar = selectedIcon;
             info["1"].name = playerName;
@@ -93,17 +94,19 @@ const PlayerInputModal = ({
             setSelectedIconIndex(null);
             setPageNum("2");
         }
+        else if(playerName==="Xotoe") setError("Oops, that nickname is already taken. Try another one.");
         else setError("Its a nickname bro, keep it below 8 characters");
     }
 
     const handlePlayerTwoInfo=()=>{
-        if(playerName?.length<9){
+        if(playerName?.length<9 && playerName!="Xotoe" && playerName!=playerInfo["1"].name){
             let info = {...playerInfo};
             info["2"].name = playerName;
             info["2"].icon = selectedIcon;
             setPlayerInfo({...info});
             updatePlayerInfo(info);
         }
+        else if(playerName==="Xotoe"|| playerName===playerInfo["1"].name) setError("Oops, that nickname is already taken. Try another one.");
         else setError("Its a nickname bro, keep it below 8 characters");
     }
 
