@@ -6,7 +6,7 @@ type SizeProps = {
 }
 type AppFlagsType={
     showOnboardingScreen: boolean, 
-    windowSizes: SizeProps,
+    windowSize: SizeProps,
     updateOnboardingFlag: (val: boolean)=>void,
     updateWindowSizes: (val: SizeProps)=>void
 }
@@ -18,26 +18,26 @@ const DEFAULT_SIZE = {
 
 const DEFAULT_STATUS: AppFlagsType={
     showOnboardingScreen: true,
-    windowSizes: DEFAULT_SIZE
+    windowSize: DEFAULT_SIZE
 }
 
 export const FlagContext = createContext<AppFlagsType>(DEFAULT_STATUS);
 
 export const FlagDataProvider =(props:any) =>{
     const [showOnboardingScreen, setShowOnboardingScreen] = useState(true);
-    const [windowSizes, setWindowSizes] = useState<SizeProps>(DEFAULT_SIZE);
+    const [windowSize, setWindowSize] = useState<SizeProps>(DEFAULT_SIZE);
 
     const updateOnboardingFlag = ()=>{
         setShowOnboardingScreen(false);
     }
     
     const updateWindowSizes=(size: SizeProps)=>{
-        setWindowSizes(size);
+        setWindowSize(size);
     }
 
     const flags: AppFlagsType|null = useMemo(() => ({
-        showOnboardingScreen, windowSizes, updateOnboardingFlag, updateWindowSizes
-    }), [showOnboardingScreen,windowSizes, updateOnboardingFlag, updateWindowSizes]);
+        showOnboardingScreen, windowSize, updateOnboardingFlag, updateWindowSizes
+    }), [showOnboardingScreen,windowSize, updateOnboardingFlag, updateWindowSizes]);
     
     return(
         <FlagContext.Provider value={flags}>
