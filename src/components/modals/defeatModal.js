@@ -6,6 +6,7 @@ import { colors } from "../../config";
 
 import { TextTag } from "../textTags";
 import { PrimaryButton } from "../cta";
+import useAppFlags from "../../context/useFlagsContext";
 
 const DefeatIllustration = require("../../assets/images/defeat.png");
 
@@ -18,6 +19,7 @@ const DefeatModal = ({
     closeModal,
     handleGameReboot
 }) => {
+    const { windowSize } = useAppFlags();
 
     return (
         <Modal
@@ -28,7 +30,7 @@ const DefeatModal = ({
             style={[base.flex_fill]}
         >
             <SafeAreaView style={[base.flex_fill]}>
-                <View style={[base.position_relative, base.align_center, base.justify_center, styles.mainWrapperWidth, base.h_100]}>
+                <View style={[base.position_relative, base.align_center, base.justify_center, styles.mainWrapperWidth, {height: windowSize?.height}]}>
                     <TouchableOpacity activeOpacity={0.6} onPress={closeModal} style={[base.position_absolute, styles.modalBackdrop, styles.mainWrapperWidth, base.h_100, { backgroundColor: colors.__modal_bg }]}></TouchableOpacity>
                     <View style={[styles.wrapper, base.position_relative]}>
                         <View style={[base.w_100, base.h_100, base.position_absolute, styles.shadow, { backgroundColor: colors.__x_black }]}></View>

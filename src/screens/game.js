@@ -16,6 +16,7 @@ import XoCell from "../components/cell";
 
 const GridIllustration = require("../assets/images/grid.png");
 const COLOR_MAP = { "white": colors.__x_white, "yellow": colors.__x_yellow, "blue": colors.__x_blue, "green": colors.__x_green, "orange": colors.__x_orange, "red": colors.__x_red, "grey": colors.__x_grey, "purple": colors.__x_purple };
+const LEVEL_WINGS = {"1234": true, "4561": true};
 /*-------
 Player Info:
 name, icon, playing, score, nextPlayerIndex
@@ -28,6 +29,7 @@ const Game = ({ route, navigation }) => {
     const [playersInfo, setPlayersInfo] = useState(null);
     const [isNotForeseeing, setIsNotForeseeing] = useState(false);
     const [gameNumber, setGameNumber] = useState(1);
+    const [level, setLevel] = useState("BASE");
     const [currentPlayerIndex, setCurrentPlayerIndex] = useState("1");
     const [triggerPlayerModal, setTriggerPlayerModal] = useState(false);
     const [xcolor, setXcolor] = useState("#FFFFFF");
@@ -217,7 +219,7 @@ const Game = ({ route, navigation }) => {
     const runXotoeBot=(nextPlayer, newBoard )=>{
         let xotoe = { ...playersInfo[nextPlayer] };
         let bestMove;
-        if(isNotForeseeing) bestMove = getNextMove(newBoard);
+        if(isNotForeseeing || level==="WINGS") bestMove = getNextMove(newBoard);
         else bestMove = getBestMove(newBoard);
         newBoard[bestMove] = xotoe.playing;
         const { winner, combo } = checkForWin(newBoard);
@@ -294,11 +296,12 @@ const Game = ({ route, navigation }) => {
         setTriggerScoreModal(false);
     }
 
-    const updatePlayerInfo = (info) => {
+    const updatePlayerInfo = (info, code) => {
         let players = { ...info };
         let isNotForeseeing = Math.floor((Math.random()*2)); 
         let xc = COLOR_MAP[info["1"].icon];
         let oc = COLOR_MAP[info["2"].icon];
+        if(LEVEL_WINGS[code]) setLevel("WINGS");
         setIsNotForeseeing(isNotForeseeing);
         setXcolor(xc);
         setOcolor(oc);

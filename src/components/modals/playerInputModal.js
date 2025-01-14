@@ -6,6 +6,7 @@ import { TextTag } from "../textTags";
 import { PrimaryButton } from "../cta";
 import { InputBox } from "../input";
 import Avatar from "../avatar";
+import useAppFlags from "../../context/useFlagsContext";
 
 const MODAL_WIDTH = 360;
 const MAX_WIDTH = size.width-48;
@@ -42,10 +43,12 @@ const PlayerInputModal = ({
     });
     const [selectedIcon, setSelectedIcon] = useState(null);
     const [selectedIconIndex, setSelectedIconIndex] = useState(-1);
+    const [code, setCode] = useState("");
     const [playerName, setPlayerName] = useState("");
     const [pageNum, setPageNum] = useState("1");
     const [playerOneAvatar, setPlayerOneAvatar] = useState("none");
     const [error, setError] = useState("");
+    const { windowSize } = useAppFlags();
 
     const handleNameChange=(val)=>{
         setPlayerName(val);
@@ -53,9 +56,11 @@ const PlayerInputModal = ({
     }
 
     const handleAvatarClick=(avatar, i)=>{
+        let codeUpdate = `${code}${i+1}`;
         setSelectedIcon(avatar);
         setSelectedIconIndex(i);
         setPlayerName(X_NAME_MAP[avatar]);
+        setCode(codeUpdate);
     }
 
     const getRandomIcon=()=>{
@@ -104,7 +109,7 @@ const PlayerInputModal = ({
             info["2"].name = playerName;
             info["2"].icon = selectedIcon;
             setPlayerInfo({...info});
-            updatePlayerInfo(info);
+            updatePlayerInfo(info, code);
         }
         else if(playerName==="Xotoe"|| playerName===playerInfo["1"].name) setError("Oops, that nickname is already taken. Try another one.");
         else setError("Its a nickname bro, keep it below 8 characters");
@@ -129,7 +134,7 @@ const PlayerInputModal = ({
             style={[base.flex_fill]}
         >
             <SafeAreaView style={[base.flex_fill]}>
-                <View style={[base.position_relative, base.align_center, base.justify_center, styles.mainWrapperWidth, base.h_100]}>
+                <View style={[base.position_relative, base.align_center, base.justify_center, styles.mainWrapperWidth, {height: windowSize?.height}]}>
                     <TouchableOpacity activeOpacity={0.6} style={[base.position_absolute, styles.modalBackdrop, styles.mainWrapperWidth, base.h_100, {backgroundColor:colors.__modal_bg }]}></TouchableOpacity>
                     <View style={[styles.wrapper, base.position_relative]}>
                         <View style={[base.w_100, base.h_100, base.position_absolute, styles.shadow, {backgroundColor: colors.__x_black}]}></View>
