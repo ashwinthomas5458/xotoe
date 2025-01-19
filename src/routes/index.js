@@ -19,8 +19,8 @@ const RoutesContainer = () => {
     const { checkIfOnboardingShown } = useStorage();
 
     const checkOnboarding = async ()=>{
-        let isComplete = await checkIfOnboardingShown();
-        if(isComplete && isComplete==="COMPLETED") updateOnboardingFlag(false);
+        // let isComplete = await checkIfOnboardingShown();
+        // if(isComplete && isComplete==="COMPLETED") updateOnboardingFlag(false);
     }
 
     const onLayout=(e)=>{

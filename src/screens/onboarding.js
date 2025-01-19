@@ -1,9 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { View, StyleSheet, Platform, UIManager, LayoutAnimation } from "react-native";
-import Animated, { Easing, runOnJS, useAnimatedProps, useDerivedValue, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
-import MaskedView from "@react-native-masked-view/masked-view";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { View, StyleSheet, Platform, UIManager, LayoutAnimation, Image } from "react-native";
+import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedProps, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 import { Path, Svg } from "react-native-svg";
-import { useVector } from "react-native-redash";
 
 import { base, size } from "../styles";
 import { colors } from "../config";
@@ -15,229 +13,222 @@ import { RoundedArrowButton } from "../components/cta";
 import { PageIndicatorDot } from "../components/indicators";
 import { OnboardingSplashDummy } from "../components/splashScreen";
 
+import OnboardingOne from "../assets/images/onboard_1.png";
+import OnboardingTwo from "../assets/images/onboard_2.png";
+import OnboardingThree from "../assets/images/onboard_3.png";
+
+const CARD_WIDTH = size.width * 0.8;
+const CARD_HEIGHT = CARD_WIDTH * 1.5;
+const DELTA_X = CARD_WIDTH * 0.34;
 const ONBOARDING_DATA = [
-    { "title": "Timeless classic", "description": "Rediscover the magic of the classic tic-tac-toe game as you embark on a journey through its timeless charm!", "background": colors.__x_red, "color": colors.__x_white, "icon": colors.__x_blue, "id": 1, "index": 0 },
-    { "title": "Dual Dominance", "description": "Master both X and O roles across 6 games. Play in both places, strategize, and conquer the board.", "background": colors.__x_yellow, "color": colors.__x_black, "icon": colors.__x_green, "id": 2, "index": 1 },
-    { "title": "Play Your Way", "description": "With diverse play modes, dive into multiplayer face-offs or challenge Xotoe for a solo gaming thrill.", "background": colors.__x_purple, "color": colors.__x_white, "icon": colors.__x_orange, "id": 3, "index": 2 },
+    { "title": "Timeless classic", "description": "Rediscover the magic of the classic tic-tac-toe game as you embark on a journey through its timeless charm!", "background": colors.__x_red, "color": colors.__x_white, "icon": colors.__x_blue, "id": 1, "index": 0, "background_item": OnboardingOne },
+    { "title": "Dual Dominance", "description": "Master both X and O roles across 6 games. Play in both places, strategize, and conquer the board.", "background": colors.__x_yellow, "color": colors.__x_black, "icon": colors.__x_green, "id": 2, "index": 1, "background_item": OnboardingTwo },
+    { "title": "Play Your Way", "description": "With diverse play modes, dive into multiplayer face-offs or challenge Xotoe for a solo gaming thrill.", "background": colors.__x_purple, "color": colors.__x_white, "icon": colors.__x_orange, "id": 3, "index": 2, "background_item": OnboardingThree },
 ];
 const ONBOARDING_INDICATORS = ["1", "2", "3"];
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const vec2 = (x, y) => {
-    "worklet";
-    return { x, y };
-};
-const curve = (c1, c2, to) => {
-    "worklet";
-    return `C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${to.x} ${to.y}`;
-};
+const OnboardingCard = ({ item, scrollX, index }) => {
 
-const CardMak = ({ children, side, position }) => {
-    const AnimatedPath = Animated.createAnimatedComponent(Path);
-
-    const radius = useDerivedValue(() => {
-        return Math.min(position.x.value, size.width / 2);
-    });
-
-    const pathAnime = useAnimatedProps(() => {
-        const stepY = position.x.value;
-        const stepX = radius.value / 2; // R/2
-        const curveControl = stepY * 0.5522847498;
-
-        const p5 = { x: position.x.value, y: position.y.value }
-        const p4 = vec2(p5.x + stepX, p5.y - stepY);
-        const p3 = vec2(p4.x + stepX, p4.y - stepY);
-        const p2 = vec2(p3.x - stepX, p3.y - stepY);
-        const p1 = vec2(p2.x - stepX, p2.y - stepY);
-
-        const c11 = vec2(p1.x, p1.y + curveControl);
-        const c12 = vec2(p2.x, p2.y);
-
-        const c21 = vec2(p2.x, p2.y);
-        const c22 = vec2(p3.x, p3.y - curveControl);
-
-        const c31 = vec2(p3.x, p3.y + curveControl);
-        const c32 = vec2(p4.x, p4.y);
-
-        const c41 = vec2(p4.x, p4.y);
-        const c42 = vec2(p5.x, p5.y - curveControl);
+    const cardStyle = useAnimatedStyle(() => {
+        let translateX = interpolate(
+            scrollX.value,
+            [size.width * (index - 1), size.width * index, size.width * (index + 1)],
+            [-DELTA_X, 0, DELTA_X],
+            Extrapolation.CLAMP
+        )
+        // let translateY = interpolate(
+        //     scrollX.value,
+        //     [size.width * (index - 1), size.width * index, size.width * (index + 1)],
+        //     [48, 0, 48],
+        //     Extrapolation.CLAMP
+        // )
+        // let rotateZ = interpolate(
+        //     scrollX.value,
+        //     [size.width * (index - 1), size.width * index, size.width * (index + 1)],
+        //     [0.1, 0, -0.1],
+        //     Extrapolation.CLAMP
+        // )
+        let scale = interpolate(
+            scrollX.value,
+            [size.width * (index - 1), size.width * index, size.width * (index + 1)],
+            [0.8, 1, 0.8],
+            Extrapolation.CLAMP
+        )
 
         return {
-            d: [
-                "M 0 0",
-                `H ${p1.x}`,
-                `V ${p1.y}`,
-                curve(c11, c12, p2),
-                curve(c21, c22, p3),
-                curve(c31, c32, p4),
-                curve(c41, c42, p5),
-                `V ${size.height}`,
-                "H 0",
-                "V 0 Z"
-            ].join(" "),
+            transform: [{ scale }, { translateX }]
         }
     })
 
-    const maskElement = (
-        <Svg style={[StyleSheet.absoluteFill, { transform: [{ rotateY: side === "RIGHT" ? "180deg" : "0deg" }] }]}>
-            <AnimatedPath animatedProps={pathAnime} fill="#000" />
-        </Svg>
-    )
-
     return (
-        <MaskedView style={[styles.cardMask, base.align_stretch]} maskElement={maskElement}>{children}</MaskedView>
+        <View style={[base.position_relative, styles.cardWidth]}>
+            <Animated.View style={[base.w_100, base.h_100, styles.maskAbsolute, base.position_absolute, base.align_stretch, cardStyle]}>
+               <View style={[base.flex_fill, base.align_stretch]}>
+               <View style={[base.justify_center, base.align_center, base.flex_fill]}>
+                    <View style={[styles.cardWrap, styles.cardBorder, base.rounded_lg, base.align_stretch, base.p_3, { backgroundColor: colors.__x_white, borderColor: colors.__x_black }]}>
+                        <View style={[base.align_stretch, styles.cardBorder, base.rounded_md, base.justify_center, base.px_6, base.flex_fill, { backgroundColor: item.background, borderColor: colors.__x_black }]}>
+                            <View style={[base.flex_fill, base.py_4, base.justify_center]}>
+                                <View style={[base.align_center]}>
+                                    <Svg width="120" height="120" viewBox="0 0 120 120" fill="none" >
+                                        <Path fillRule="evenodd" clipRule="evenodd" d="M83.1688 12.5092C75.7432 8.36163 67.2061 6 58.1236 6C40.2567 6 24.5004 15.139 15.1645 29.0344C6.93403 32.8123 1.2002 41.204 1.2002 50.9599V64.8912C1.2002 74.1704 6.38848 82.2157 13.9745 86.2294C19.4018 95.0857 27.3616 102.192 36.8318 106.508C44.2573 110.656 52.7942 113.017 61.8768 113.017C80.5267 113.017 96.8755 103.061 106.026 88.1291C113.612 84.1154 118.8 76.0701 118.8 66.7909V52.8596C118.8 43.1037 113.066 34.712 104.836 30.9341C99.465 22.9401 91.969 16.5203 83.1688 12.5092ZM30.0027 18.9679C25.387 22.3336 21.3836 26.5061 18.1941 31.2813C18.433 31.1616 18.6742 31.0459 18.9176 30.9341C21.9747 26.3841 25.7202 22.344 30.0027 18.9679ZM13.7084 34.2053C8.36755 38.6157 4.95339 45.3315 4.95339 52.8596V50.9599C4.95339 43.9962 8.42336 37.8529 13.7084 34.2053ZM38.5084 103.105C31.003 98.8813 24.7292 92.6862 20.3697 85.2109C13.486 82.0063 8.70658 74.9636 8.70658 66.7909V52.8596C8.70658 44.2773 13.9771 36.9411 21.4203 33.9871C30.002 20.5742 44.9156 11.6991 61.8768 11.6991C68.8623 11.6991 75.5005 13.2045 81.492 15.9123C88.4142 19.8077 94.2888 25.3802 98.5801 32.0873C106.023 35.0414 111.294 42.3776 111.294 50.9599V64.8912C111.294 73.0639 106.514 80.1066 99.6307 83.3112C91.2514 97.6796 75.7994 107.318 58.1236 107.318C51.1381 107.318 44.4999 105.813 38.5084 103.105Z" fill={colors.__x_black} />
+                                        <Path d="M98.5798 32.0872C106.023 35.0413 111.294 42.3775 111.294 50.9598V64.891C111.294 73.0638 106.514 80.1065 99.6304 83.311C91.2511 97.6795 75.7991 107.318 58.1233 107.318C40.4475 107.318 24.9955 97.6795 16.6163 83.311C9.73254 80.1065 4.95312 73.0638 4.95312 64.891V50.9598C4.95312 42.3775 10.2236 35.0413 17.6669 32.0872C26.2485 18.6743 41.1621 9.79932 58.1233 9.79932C75.0846 9.79932 89.9982 18.6743 98.5798 32.0872Z" fill={item.icon} />
+                                        <Path d="M106.289 58.5584C106.289 62.2385 105.886 65.8234 105.123 69.2703C96.8607 85.1599 79.0613 99.7189 58.4357 99.7189C36.8897 99.7189 18.4275 83.8313 10.6999 67.136C10.2117 64.3514 9.95703 61.485 9.95703 58.5584C9.95703 50.8662 11.7166 43.5901 14.8505 37.1199C15.8073 35.1444 17.3787 33.5297 19.3681 32.6437C28.8313 28.4291 42.824 27.5298 58.4357 27.5298C73.4284 27.5298 86.9279 28.3592 96.3564 32.1578C98.482 33.0142 100.185 34.6698 101.21 36.7402C104.46 43.3049 106.289 50.7154 106.289 58.5584Z" fill={colors.__x_black} />
+                                        <Path fillRule="evenodd" clipRule="evenodd" d="M76.2537 69.0074C77.7043 69.6406 79.3198 69.9572 81.1001 69.9572C82.8584 69.9572 84.4629 69.6512 85.9135 69.039C87.3641 68.4058 88.6169 67.5615 89.6719 66.5061C90.7488 65.4296 91.573 64.2159 92.1445 62.865C92.7379 61.514 93.0346 60.0998 93.0346 58.6223C93.0346 57.1869 92.7489 55.7938 92.1775 54.4429C91.628 53.0709 90.8367 51.8361 89.8037 50.7384C88.7707 49.6408 87.5289 48.7754 86.0783 48.1422C84.6277 47.4878 83.0122 47.1606 81.2319 47.1606C79.4956 47.1606 77.8912 47.4667 76.4186 48.0788C74.968 48.691 73.7042 49.5353 72.6272 50.6118C71.5722 51.6672 70.748 52.8703 70.1546 54.2213C69.5611 55.5722 69.2644 56.9969 69.2644 58.4956C69.2644 59.9521 69.5392 61.3663 70.0886 62.7383C70.6601 64.0892 71.4623 65.3135 72.4953 66.4111C73.5503 67.4876 74.8031 68.353 76.2537 69.0074ZM76.1218 60.7753C75.9021 60.0576 75.7922 59.3188 75.7922 58.5589C75.7922 57.8202 75.8911 57.1025 76.0889 56.4059C76.3087 55.6883 76.6383 55.055 77.0779 54.5062C77.5175 53.9363 78.067 53.4825 78.7263 53.1447C79.4077 52.807 80.2099 52.6382 81.133 52.6382C82.0342 52.6382 82.8254 52.7965 83.5068 53.1131C84.1881 53.4297 84.7486 53.873 85.1882 54.4429C85.6277 54.9917 85.9574 55.6144 86.1772 56.3109C86.397 57.0075 86.5069 57.7357 86.5069 58.4956C86.5069 59.2344 86.397 59.9626 86.1772 60.6803C85.9794 61.3768 85.6607 62.0206 85.2211 62.6117C84.8035 63.1816 84.254 63.6354 83.5727 63.9731C82.8914 64.3108 82.0891 64.4797 81.166 64.4797C80.2429 64.4797 79.4407 64.3214 78.7593 64.0048C78.1 63.6671 77.5505 63.2238 77.1109 62.675C76.6713 62.1051 76.3416 61.4718 76.1218 60.7753Z" fill={item.icon} />
+                                        <Path d="M30.8757 49.4368C30.4029 48.801 29.6626 48.4271 28.8766 48.4271H24.9722C23.9197 48.4271 23.3376 49.6625 23.9999 50.4905L30.5671 58.7016L24.2777 66.6314C23.6203 67.4602 24.2032 68.6907 25.2532 68.6907H29.1576C29.9514 68.6907 30.6981 68.3095 31.1698 67.6632L34.8786 62.5831L38.5873 67.6632C39.0591 68.3095 39.8058 68.6907 40.5996 68.6907H44.4671C45.5171 68.6907 46.1 67.4602 45.4426 66.6314L39.1532 58.7016L45.7205 50.4905C46.3827 49.6625 45.8006 48.4271 44.7481 48.4271H40.8806C40.0946 48.4271 39.3542 48.801 38.8815 49.4368L34.8786 54.8202L30.8757 49.4368Z" fill={item.icon} />
+                                    </Svg>
+                                </View>
+                                <View style={[base.pt_10, base.align_center]}>
+                                    <TextTag type="textLg" style={[base.sans_700, base.pb_4, { color: item.color }]}>{item.title}</TextTag>
+                                    <TextTag type="textSm" style={[base.sans_400, base.text_center, { color: item.color }]}>{item.description}</TextTag>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+                <View style={[base.cardWidth]}>
+                    <View style={[styles.dummySpacing]}></View>
+                </View>
+               </View>
+            </Animated.View>
+        </View>
     )
 }
 
-const OnboardingCard = ({ item }) => {
+const BackgroundCard = ({ item, index, scrollX }) => {
+
+    const cardStyle = useAnimatedStyle(() => {
+        let opacity = interpolate(
+            scrollX.value,
+            [size.width * (index - 1), size.width * index, size.width * (index + 1)],
+            [0, 1, 0],
+            Extrapolation.CLAMP
+        )
+
+        return {
+            opacity
+        }
+    })
+
+
     return (
-        <View style={[base.align_stretch, base.flex_fill, { backgroundColor: item.background }]}>
-            <View style={[base.flex_fill, base.align_center]}>
-                <View style={[styles.cardWrap, base.align_stretch, base.justify_center, base.px_10]}>
-                    <View style={[base.flex_fill, base.py_4, base.justify_center]}>
-                        <View style={[base.align_center]}>
-                            <Svg width="200" height="200" viewBox="0 0 200 200" fill="none" >
-                                <Path fillRule="evenodd" clipRule="evenodd" d="M138.614 20.8487C126.238 13.9361 112.01 10 96.8723 10C67.0942 10 40.8338 25.2316 25.2738 48.3907C11.5564 54.6872 2 68.6733 2 84.9332V108.152C2 123.617 10.6471 137.026 23.2905 143.716C32.3361 158.476 45.6023 170.32 61.386 177.514C73.7618 184.426 87.9899 188.362 103.128 188.362C134.211 188.362 161.459 171.768 176.71 146.882C189.353 140.192 198 126.784 198 111.318V88.0994C198 71.8395 188.444 57.8534 174.726 51.5569C165.775 38.2335 153.281 27.5338 138.614 20.8487ZM50.0042 31.6131C42.3113 37.2226 35.6389 44.1768 30.3231 52.1356C30.7214 51.936 31.1234 51.7431 31.5291 51.5569C36.6242 43.9735 42.8666 37.2401 50.0042 31.6131ZM22.8471 57.0088C13.9456 64.3595 8.25532 75.5525 8.25532 88.0994V84.9332C8.25532 73.327 14.0386 63.0881 22.8471 57.0088ZM64.1803 171.842C51.6713 164.802 41.2149 154.477 33.9492 142.018C22.4763 136.677 14.5106 124.939 14.5106 111.318V88.0994C14.5106 73.7955 23.2948 61.5685 35.7002 56.6451C50.0029 34.2903 74.8589 19.4986 103.128 19.4986C114.77 19.4986 125.834 22.0076 135.82 26.5205C147.357 33.0129 157.148 42.3003 164.3 53.4789C176.705 58.4023 185.489 70.6293 185.489 84.9332V108.152C185.489 121.773 177.524 133.511 166.051 138.852C152.085 162.799 126.332 178.864 96.8723 178.864C85.2299 178.864 74.1662 176.355 64.1803 171.842Z" fill={colors.__x_black} />
-                                <Path d="M164.3 53.479C176.706 58.4024 185.49 70.6294 185.49 84.9333V108.152C185.49 121.773 177.524 133.511 166.051 138.852C152.086 162.799 126.333 178.864 96.8729 178.864C67.4132 178.864 41.6599 162.799 27.6945 138.852C16.2216 133.511 8.25586 121.773 8.25586 108.152V84.9333C8.25586 70.6294 17.0401 58.4024 29.4454 53.479C43.7482 31.1242 68.6041 16.3325 96.8729 16.3325C125.142 16.3325 149.998 31.1242 164.3 53.479Z" fill={item.icon} />
-                                <Path d="M177.149 97.5977C177.149 103.731 176.478 109.706 175.206 115.451C161.435 141.933 131.769 166.199 97.3936 166.199C61.4834 166.199 30.7132 139.719 17.8338 111.894C17.0202 107.253 16.5957 102.475 16.5957 97.5977C16.5957 84.7774 19.5283 72.6504 24.7514 61.8668C26.3462 58.5743 28.9652 55.8832 32.2808 54.4065C48.0529 47.3821 71.3739 45.8833 97.3936 45.8833C122.381 45.8833 144.88 47.2656 160.595 53.5967C164.137 55.0239 166.975 57.7833 168.683 61.234C174.1 72.1751 177.149 84.526 177.149 97.5977Z" fill={colors.__x_black} />
-                                <Path fillRule="evenodd" clipRule="evenodd" d="M127.09 115.012C129.507 116.068 132.2 116.595 135.167 116.595C138.097 116.595 140.771 116.085 143.189 115.065C145.607 114.01 147.695 112.602 149.453 110.843C151.248 109.049 152.622 107.026 153.574 104.775C154.563 102.523 155.058 100.166 155.058 97.7038C155.058 95.3115 154.581 92.9897 153.629 90.7381C152.713 88.4514 151.395 86.3934 149.673 84.5641C147.951 82.7347 145.882 81.2923 143.464 80.2369C141.046 79.1464 138.354 78.6011 135.387 78.6011C132.493 78.6011 129.819 79.1112 127.364 80.1314C124.947 81.1516 122.84 82.5588 121.045 84.353C119.287 86.112 117.913 88.1172 116.924 90.3688C115.935 92.6203 115.441 94.9949 115.441 97.4927C115.441 99.9201 115.899 102.277 116.814 104.564C117.767 106.815 119.104 108.856 120.826 110.685C122.584 112.479 124.672 113.922 127.09 115.012ZM126.87 101.292C126.503 100.096 126.32 98.8647 126.32 97.5982C126.32 96.3669 126.485 95.1708 126.815 94.0099C127.181 92.8138 127.731 91.7584 128.463 90.8437C129.196 89.8938 130.112 89.1375 131.211 88.5746C132.346 88.0117 133.683 87.7303 135.222 87.7303C136.724 87.7303 138.042 87.9941 139.178 88.5218C140.314 89.0495 141.248 89.7883 141.98 90.7381C142.713 91.6528 143.262 92.6906 143.629 93.8516C143.995 95.0125 144.178 96.2262 144.178 97.4927C144.178 98.724 143.995 99.9377 143.629 101.134C143.299 102.295 142.768 103.368 142.035 104.353C141.339 105.303 140.423 106.059 139.288 106.622C138.152 107.185 136.815 107.466 135.277 107.466C133.738 107.466 132.401 107.202 131.266 106.675C130.167 106.112 129.251 105.373 128.518 104.458C127.786 103.508 127.236 102.453 126.87 101.292Z" fill={item.icon} />
-                                <Path d="M51.4594 82.3946C50.6716 81.3351 49.4377 80.7119 48.1276 80.7119H41.6203C39.8662 80.7119 38.896 82.7709 39.9998 84.1509L50.9452 97.8361L40.4629 111.052C39.3672 112.434 40.3386 114.485 42.0887 114.485H48.596C49.919 114.485 51.1634 113.849 51.9497 112.772L58.131 104.305L64.3122 112.772C65.0985 113.849 66.343 114.485 67.6659 114.485H74.1118C75.8619 114.485 76.8334 112.434 75.7377 111.052L65.2553 97.8361L76.2008 84.1509C77.3045 82.7709 76.3343 80.7119 74.5802 80.7119H68.1343C66.8243 80.7119 65.5904 81.3351 64.8025 82.3946L58.131 91.3669L51.4594 82.3946Z" fill={item.icon} />
-                            </Svg>
-                        </View>
-                        <View style={[base.pt_10, base.align_center]}>
-                            <TextTag type="textXl" style={[base.sans_700, base.pb_4, { color: item.color }]}>{item.title}</TextTag>
-                            <TextTag type="textM" style={[base.sans_400, base.text_center, { color: item.color }]}>{item.description}</TextTag>
-                        </View>
-                    </View>
-                    <View style={[base.pb_8]}>
-                        <View style={[base.pb_10]}>
-                            <View style={[styles.btnDummy]}></View>
-                        </View>
-                        <View style={[styles.paginationDummy]}></View>
-                    </View>
-                </View>
-            </View>
-        </View>
+        <Animated.View style={cardStyle}>
+            <Image source={item.background_item} style={[base.position_absolute, styles.cardMask, styles.maskAbsolute]} blurRadius={120} />
+        </Animated.View>
     )
 }
 
 const Onboarding = () => {
     const [index, setIndex] = useState(0);
+
     const [transitioning, setTransitioning] = useState(false);
     const [showDummySplash, setShowDummySplash] = useState(true);
     const [triggerDummyView, setTriggerDummyView] = useState(false);
+
     const { updateOnboardingFlag } = useAppFlags();
     const { updateOnboardingStatus } = useStorage();
+
     const scrollX = useSharedValue(0);
     const onboardingAnime = useSharedValue(0);
     const splashOpacityAnime = useSharedValue(1);
-    const leftMask = useVector(0, size.height-80);
-    const rightMask = useVector(0, size.height-80);
+
+    const scrollRef = useRef();
 
     const navigateToHome = async () => {
         await updateOnboardingStatus();
         updateOnboardingFlag(true);
     }
 
-    const getPrevSlide = () => { return ONBOARDING_DATA[index - 1] };
-    const getNextSlide = () => { return ONBOARDING_DATA[index + 1] };
-    const prev = useMemo(getPrevSlide, [index]);
-    const next = useMemo(getNextSlide, [index]);
+    const scrollCardToIndex = (i) => {
+        let offset = size.width * (i);
+        scrollRef.current.scrollToOffset({ offset });
+    }
 
     const handleNextClick = () => {
-        if (!transitioning) {
-            const newIndex = index + 1;
-            if (newIndex < 3) {
-                setTransitioning(true);
-                const translateX = size.width * newIndex;
-                rightMask.x.value = withTiming(size.width, {duration: 600, easing: Easing.ease});
-                scrollX.value = withTiming(translateX, {duration: 600, easing: Easing.ease}, (isFinished) => { if (isFinished) runOnJS(resetRight)(newIndex) });
-            }
-            else navigateToHome();
-        }
+        let i = index + 1;
+        if (i === 3) navigateToHome();
+        else scrollCardToIndex(i);
+        setIndex(i);
     }
 
     const handlePrevClick = () => {
-        if (!transitioning) {
-            const newIndex = index - 1;
-            if (newIndex >= 0) {
-                setTransitioning(true);
-                const translateX = size.width * newIndex;
-                leftMask.x.value = withTiming(size.width, {duration: 600, easing: Easing.ease});
-                scrollX.value = withTiming(translateX, {duration: 600, easing: Easing.ease}, (isFinished) => { if (isFinished) runOnJS(resetLeft)(newIndex) });
-            }
-        }
+        let i = index - 1;
+        if (i > -1) scrollCardToIndex(i);
+        setIndex(i);
     }
 
-    const handleSplashLayoutShift=(complete)=>{
-        if(complete){
+    const onMomentumScrollEnd=(e)=>{
+        let offset = e.nativeEvent.contentOffset.x;
+        let calculatedIndex = Math.ceil(offset/size.width);
+        setIndex(calculatedIndex);
+    }
+
+    const onScrollX = useAnimatedScrollHandler((event) => {
+        scrollX.value = event.contentOffset.x;
+    });
+
+    const renderOnboardingCards = useCallback(({ item, index }) => (<OnboardingCard item={item} index={index} scrollX={scrollX} />), []);
+
+    const keyExtractor = useCallback((_, index) => `$onboarding-card-${index}`, []);
+
+    const handleSplashLayoutShift = (complete) => {
+        if (complete) {
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             setTriggerDummyView(true);
             splashOpacityAnime.value = withTiming(0, {
                 duration: 600,
                 easing: Easing.ease,
-            },(isFinished)=>{if(isFinished)runOnJS(setShowDummySplash)(false)})
+            }, (isFinished) => { if (isFinished) runOnJS(setShowDummySplash)(false) })
         }
     }
 
-    const triggerSplashAnime=()=>{
+    const triggerSplashAnime = () => {
         onboardingAnime.value = withDelay(1500, withTiming(1, {
             duration: 500,
             easing: Easing.ease,
-        }, (isFinished)=>runOnJS(handleSplashLayoutShift)(isFinished)))
+        }, (isFinished) => runOnJS(handleSplashLayoutShift)(isFinished)))
     }
 
-    const resetRight = (index) => {
-        rightMask.x.value = 0;
-        setTransitioning(false);
-        setIndex(index);
-    }
-    const resetLeft = (index) => {
-        leftMask.x.value = 0;
-        setTransitioning(false);
-        setIndex(index);
-    }
-
-    useEffect(()=>{
+    useEffect(() => {
         triggerSplashAnime();
-    },[]);
+    }, []);
 
     return (
         <>
-            <View style={[base.flex_fill]}>
-                {
-                    index != null ?
-                        <Animated.View style={[base.position_absolute, styles.cardMask, styles.maskAbsolute, base.align_stretch]}>
-                            <OnboardingCard item={ONBOARDING_DATA[index]} />
-                        </Animated.View>
-                        : null
-                }
-                {
-                    prev != null ?
-                        <Animated.View style={[base.position_absolute, styles.cardMask, styles.maskAbsolute]}>
-                            <CardMak side="LEFT" position={leftMask}>
-                                <OnboardingCard item={prev} />
-                            </CardMak>
-                        </Animated.View>
-                        : null
-                }
-                {
-                    next != null ?
-                        <Animated.View style={[base.position_absolute, styles.cardMask, styles.maskAbsolute]}>
-                            <CardMak side="RIGHT" position={rightMask}>
-                                <OnboardingCard item={next} />
-                            </CardMak>
-                        </Animated.View>
-                        : null
-                }
+            <View style={[base.flex_fill, base.position_relative]}>
+                <>
+                    {
+                        ONBOARDING_DATA.map((item, i) => {
+                            return <BackgroundCard item={item} index={i} key={`bg-card-${i + 1}`} scrollX={scrollX} />
+                        })
+                    }
+                </>
+                <Animated.FlatList
+                    ref={scrollRef}
+                    showsHorizontalScrollIndicator={false}
+                    data={ONBOARDING_DATA}
+                    keyExtractor={keyExtractor}
+                    renderItem={renderOnboardingCards}
+                    horizontal
+                    bounces={false}
+                    decelerationRate={0.98}
+                    renderToHardwareTextureAndroid
+                    snapToInterval={size.width}
+                    snapToAlignment="start"
+                    scrollEventThrottle={16}
+                    onScroll={onScrollX}
+                    removeClippedSubviews={false}
+                    onMomentumScrollEnd={onMomentumScrollEnd}
+                    disableIntervalMomentum={true}
+                />
                 <View style={[styles.btnWrap, base.position_absolute, base.align_stretch]}>
                     <View style={[base.pb_4, base.flex_row, base.px_8]}>
                         <View style={[base.pe_2]}>
                             {
-                                prev? <RoundedArrowButton scrollX={scrollX} onClick={handlePrevClick} type="left"/>
-                                : <View style={[styles.btnDummy]}></View>
+                                index ? <RoundedArrowButton scrollX={scrollX} onClick={handlePrevClick} type="left" />
+                                    : <View style={[styles.btnDummy]}></View>
                             }
                         </View>
                         <View style={[base.flex_fill, base.flex_row, base.align_center, base.justify_center]}>
@@ -248,12 +239,12 @@ const Onboarding = () => {
                             }
                         </View>
                         <View style={[base.ps_2]}>
-                            <RoundedArrowButton scrollX={scrollX} onClick={handleNextClick} type="right"/>
+                            <RoundedArrowButton scrollX={scrollX} onClick={handleNextClick} type="right" />
                         </View>
                     </View>
                 </View>
             </View>
-            {showDummySplash? <OnboardingSplashDummy anime={onboardingAnime} opacityAnime={splashOpacityAnime} triggerLayoutShift={triggerDummyView}/>: null}
+            {showDummySplash ? <OnboardingSplashDummy anime={onboardingAnime} opacityAnime={splashOpacityAnime} triggerLayoutShift={triggerDummyView} /> : null}
         </>
     )
 }
@@ -263,13 +254,19 @@ const styles = StyleSheet.create({
         width: size.width,
         height: size.height
     },
+    cardWidth: {
+        width: size.width,
+    },
     maskAbsolute: {
         top: 0,
         left: 0
     },
     cardWrap: {
-        width: size.width,
-        height: "100%"
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT
+    },
+    cardBorder: {
+        borderWidth: 4
     },
     btnDummy: {
         width: 64,
@@ -280,9 +277,10 @@ const styles = StyleSheet.create({
         bottom: 32,
         left: 0
     },
-    paginationDummy: {
-        height: 12
-    },
+    dummySpacing: {
+        width: "100%",
+        height: 80
+    }
 })
 
 
